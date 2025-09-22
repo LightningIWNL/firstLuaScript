@@ -17,6 +17,7 @@ local function pressButton(btn)
 	GuiService.SelectedObject = btn
 	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+
 	return true
 end
 
@@ -48,24 +49,36 @@ end
 
 
 
-local function retryGG(retry)
-	retry_btn = retry
-	if retry then
-		task.spawn(function()
-			while retry_btn do
-				if retryBTN then
-					pressButton(retryBTN)
-				end
-				task.wait(0.1)
-			end
-		end)
-	end
+if _G.retryLoopRunning == nil then
+    _G.retryLoopRunning = false
 end
 
--- blacksc(true)
-_G.blacksc = blacksc
+local function retryGG(retry)
+    if retry then
+        -- เริ่ม loop ใหม่
+        _G.retryLoopRunning = true
+        task.spawn(function()
+            while _G.retryLoopRunning do
+                if retryBTN then
+                    pressButton(retryBTN)
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        -- สั่งหยุด loop
+        _G.retryLoopRunning = false
+        GuiService.SelectedObject = nil
+    end
+end
+-- -- blacksc(true)
+-- _G.blacksc = blacksc
+-- _G.retryGG = retryGG
+-- -- retryGG(true)
+
+
 _G.retryGG = retryGG
--- retryGG(true)
+_G.blacksc = blacksc
 
 -- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
 local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame
@@ -172,4 +185,3 @@ while true do
 end
 
 print("[DONE] วนจนครบตาม index แล้ว")
-
