@@ -7,7 +7,8 @@ local retryBTN = game:GetService("Players").LocalPlayer.PlayerGui.RewardsUI.Main
 local retry_btn = false
 local black_screen = false
 
-
+blacksc(true)
+retryGG(true)
 
 local function blacksc(bscreen)
     black_screen = bscreen
@@ -53,8 +54,7 @@ local function retryGG(retry)
 	end
 end
 
-blacksc(true)
-retryGG(true)
+
 
 -- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
 local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame
