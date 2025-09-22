@@ -71,12 +71,8 @@ end
 -- -- retryGG(true)
 
 
-if not _G.retryGG then
-    _G.retryGG = retryGG
-end
-if not _G.blacksc then
-    _G.blacksc = blacksc
-end
+_G.retryGG = retryGG
+_G.blacksc = blacksc
 
 -- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
 local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame
