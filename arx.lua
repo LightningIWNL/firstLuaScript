@@ -7,8 +7,19 @@ local retryBTN = game:GetService("Players").LocalPlayer.PlayerGui.RewardsUI.Main
 local retry_btn = false
 local black_screen = false
 
-blacksc(true)
-retryGG(true)
+
+
+-- กดปุ่มด้วยคีย์ Enter (วิธีเบสิคที่ใช้ได้กว้าง)
+local function pressButton(btn)
+	if not (btn and btn:IsA("GuiButton")) then return false end
+	btn.Selectable = true
+
+	GuiService.SelectedObject = btn
+	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+
+	return true
+end
 
 local function blacksc(bscreen)
     black_screen = bscreen
@@ -54,7 +65,8 @@ local function retryGG(retry)
 	end
 end
 
-
+blacksc(true)
+retryGG(true)
 
 -- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
 local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame
@@ -62,17 +74,7 @@ local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFra
 -- (ถ้าต้องโยงกับข้อมูลฝั่ง UnitsFolder)
 local unitsFolder = plr:WaitForChild("UnitsFolder")
 
--- กดปุ่มด้วยคีย์ Enter (วิธีเบสิคที่ใช้ได้กว้าง)
-local function pressButton(btn)
-	if not (btn and btn:IsA("GuiButton")) then return false end
-	btn.Selectable = true
 
-	GuiService.SelectedObject = btn
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-
-	return true
-end
 -- เรียงการ์ดยูนิตในหน้าอัปเกรดตาม LayoutOrder (ให้ index ตรงกับที่เห็น)
 local function getCards()
 	local arr = {}
