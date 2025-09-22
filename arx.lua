@@ -3,31 +3,83 @@ local GuiService = game:GetService("GuiService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
-local retryBTN = game:GetService("Players").LocalPlayer.PlayerGui.RewardsUI.Main.LeftSide.Button.Retry
+
 local retry_btn = false
 local black_screen = false
 
+-- ฟังก์ชันเช็คการมีอยู่ของ GUI อย่างปลอดภัย
+local function safeGetGui(path)
+    local current = plr.PlayerGui
+    for _, part in ipairs(path) do
+        if not current:FindFirstChild(part) then
+            return nil
+        end
+        current = current[part]
+    end
+    return current
+end
 
+-- ฟังก์ชันดึงปุ่ม Retry อย่างปลอดภัย
+local function getRetryButton()
+    return safeGetGui({"RewardsUI", "Main", "LeftSide", "Button", "Retry"})
+end
 
--- กดปุ่มด้วยคีย์ Enter (วิธีเบสิคที่ใช้ได้กว้าง)
+-- ฟังก์ชันดึง Upgrade Page อย่างปลอดภัย
+local function getUpgradePage()
+    return safeGetGui({"HUD", "InGame", "UnitsManager", "Main", "Main", "ScrollingFrame"})
+end
+
+-- กดปุ่มด้วยคีย์ Enter (เพิ่มการเช็คความปลอดภัย)
 local function pressButton(btn)
-	if not (btn and btn:IsA("GuiButton")) then return false end
-	btn.Selectable = true
-
-	GuiService.SelectedObject = btn
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-	return true
+    if not btn then 
+        warn("Button is nil")
+        return false 
+    end
+    if not btn.Parent then 
+        warn("Button parent is nil")
+        return false 
+    end
+    if not btn:IsA("GuiButton") then 
+        warn("Not a GuiButton: " .. tostring(btn.ClassName))
+        return false 
+    end
+    
+    -- ตรวจสอบว่าปุ่มสามารถกดได้
+    if not btn.Visible then
+        warn("Button is not visible")
+        return false
+    end
+    
+    btn.Selectable = true
+    GuiService.SelectedObject = btn
+    
+    -- ใช้ pcall เพื่อป้องกัน error
+    local success, err = pcall(function()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+        task.wait(0.05) -- รอเล็กน้อย
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+    end)
+    
+    if not success then
+        warn("Error pressing button: " .. tostring(err))
+        return false
+    end
+    
+    return true
 end
 
 local function blacksc(bscreen)
     black_screen = bscreen
     if black_screen then
+        -- ลบ GUI เก่าก่อน (ถ้ามี)
+        local oldGui = plr.PlayerGui:FindFirstChild("BlackScreen")
+        if oldGui then oldGui:Destroy() end
+        
         local gui = Instance.new("ScreenGui")
         gui.Name = "BlackScreen"
         gui.IgnoreGuiInset = true
         gui.ResetOnSpawn = false
-        gui.Parent = plr:WaitForChild("PlayerGui")
+        gui.Parent = plr.PlayerGui
 
         RunService:Set3dRenderingEnabled(false)
 
@@ -39,139 +91,289 @@ local function blacksc(bscreen)
     else
         RunService:Set3dRenderingEnabled(true)
         local gui = plr.PlayerGui:FindFirstChild("BlackScreen")
-        if gui then gui:Destroy() end  -- <- กัน nil
+        if gui then gui:Destroy() end
     end
 end
 
-
+-- ตัวแปร Global สำหรับควบคุม Loop
 if _G.retryLoopRunning == nil then
     _G.retryLoopRunning = false
 end
 
 local function retryGG(retry)
     if retry then
-        -- เริ่ม loop ใหม่
+        if _G.retryLoopRunning then
+            print("Retry loop is already running")
+            return
+        end
+        
         _G.retryLoopRunning = true
+        print("Starting retry loop...")
+        
         task.spawn(function()
             while _G.retryLoopRunning do
+                local retryBTN = getRetryButton()
                 if retryBTN then
-                    pressButton(retryBTN)
+                    local success = pressButton(retryBTN)
+                    if not success then
+                        warn("Failed to press retry button")
+                    end
+                else
+                    -- ถ้าไม่พบปุ่ม retry รอนานขึ้น
+                    task.wait(1)
+                    continue
                 end
                 task.wait(0.1)
             end
+            print("Retry loop stopped")
         end)
     else
-        -- สั่งหยุด loop
+        print("Stopping retry loop...")
         _G.retryLoopRunning = false
     end
 end
 
-
+-- ตั้งค่า Global Functions
 _G.retryGG = retryGG
 _G.blacksc = blacksc
 
--- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
-local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame
-
--- (ถ้าต้องโยงกับข้อมูลฝั่ง UnitsFolder)
-local unitsFolder = plr:WaitForChild("UnitsFolder")
-
-
--- เรียงการ์ดยูนิตในหน้าอัปเกรดตาม LayoutOrder (ให้ index ตรงกับที่เห็น)
+-- เรียงการ์ดยูนิตในหน้าอัปเกรดตาม LayoutOrder
 local function getCards()
-	local arr = {}
-	for _, child in ipairs(upgradePage:GetChildren()) do
-		if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
-			table.insert(arr, child)
-		end
-	end
-	table.sort(arr, function(a,b)
-		return (a.LayoutOrder or 0) < (b.LayoutOrder or 0)
-	end)
-	return arr
+    local upgradePage = getUpgradePage()
+    if not upgradePage then
+        warn("ไม่พบ upgradePage")
+        return {}
+    end
+    
+    local arr = {}
+    for _, child in ipairs(upgradePage:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("ImageButton") or child:IsA("TextButton") then
+            table.insert(arr, child)
+        end
+    end
+    
+    table.sort(arr, function(a, b)
+        return (a.LayoutOrder or 0) < (b.LayoutOrder or 0)
+    end)
+    
+    return arr
 end
 
--- เรียงโฟลเดอร์ยูนิต (ถ้าคุณจัดไว้แล้วให้ตรง index ก็ใช้ตรงๆ ได้เลย)
+-- เรียงโฟลเดอร์ยูนิต
 local function getUnits()
-	local arr = {}
-	for _, u in ipairs(unitsFolder:GetChildren()) do
-		table.insert(arr, u)
-	end
-	-- ถ้า UnitsFolder มีฟิลด์ LayoutOrder ของตัวเอง ก็สามารถ sort แบบเดียวกับการ์ด
-	-- ไม่งั้นจะใช้ลำดับที่คืนมาจาก GetChildren() ตามเดิม
-	return arr
+    local unitsFolder = plr:FindFirstChild("UnitsFolder")
+    if not unitsFolder then
+        warn("ไม่พบ UnitsFolder")
+        return {}
+    end
+    
+    local arr = {}
+    for _, u in ipairs(unitsFolder:GetChildren()) do
+        if u:IsA("Folder") or u:IsA("Model") then
+            table.insert(arr, u)
+        end
+    end
+    
+    return arr
 end
 
-
-
+-- เช็คว่า Max แล้วหรือยัง
 local function isMaxedByUpgradeText(card)
     if not card then return false end
+    
     local txtObj = card:FindFirstChild("UpgradeText")
+    if not txtObj then
+        -- ลองหาใน children อื่น
+        for _, child in ipairs(card:GetChildren()) do
+            if child:IsA("TextLabel") or child:IsA("TextButton") then
+                if child.Name:lower():find("upgrade") or child.Name:lower():find("text") then
+                    txtObj = child
+                    break
+                end
+            end
+        end
+    end
+    
     if not (txtObj and (txtObj:IsA("TextLabel") or txtObj:IsA("TextButton"))) then
         return false
     end
 
-    local txt = string.lower(txtObj.Text)
-    -- ถ้าในข้อความมี "(max)" แปลว่าเต็มแล้ว
-    return txt:find("%(max%)") ~= nil
+    local txt = string.lower(txtObj.Text or "")
+    return txt:find("%(max%)") ~= nil or txt:find("max") ~= nil
 end
 
-
+-- อัปเกรดจนสุด
 local function upgradeIndexToMax(unit, card, opts)
+    if not unit or not card then
+        warn("Unit หรือ Card เป็น nil")
+        return false
+    end
+    
     opts = opts or {}
     local maxTries = opts.maxTries or 300
     local waitBetween = opts.waitBetween or 0.15
 
-    for _ = 1, maxTries do
+    print(("[UPGRADE] เริ่มอัปเกรด: %s"):format(unit.Name or "Unknown"))
+
+    for i = 1, maxTries do
+        -- เช็คว่า Max แล้วหรือยัง
         if isMaxedByUpgradeText(card) then
-            print("[UPG] "..unit.Name.." MAXED (UpgradeText)")
+            print(("[UPGRADE] %s MAXED! (รอบที่ %d)"):format(unit.Name or "Unknown", i))
             return true
         end
 
+        -- หาปุ่ม Upgrade
         local btn = card:FindFirstChild("Upgrade")
-        if not (btn and btn:IsA("GuiButton")) then
-            warn("[UPG] ไม่พบปุ่ม Upgrade ใน "..card.Name)
+        if not btn then
+            -- ลองหาในชื่ออื่น
+            for _, child in ipairs(card:GetChildren()) do
+                if child:IsA("GuiButton") and (
+                    child.Name:lower():find("upgrade") or 
+                    child.Name:lower():find("buy") or
+                    child.Name:lower():find("level")
+                ) then
+                    btn = child
+                    break
+                end
+            end
+        end
+        
+        if not btn then
+            warn(("[UPGRADE] ไม่พบปุ่ม Upgrade ใน %s"):format(card.Name or "Unknown"))
             return false
         end
 
-        if not pressButton(btn) then
-            warn("[UPG] กดปุ่มไม่สำเร็จ: "..btn.Name)
-            return false
+        -- ลองกดปุ่ม
+        local success = pressButton(btn)
+        if not success then
+            warn(("[UPGRADE] กดปุ่มไม่สำเร็จ: %s (ครั้งที่ %d)"):format(btn.Name or "Unknown", i))
+            -- ลองต่อแทนที่จะหยุด
         end
 
         task.wait(waitBetween)
+        
+        -- เช็คทุก 10 รอบว่า card ยังอยู่ไหม
+        if i % 10 == 0 then
+            if not card.Parent then
+                warn(("[UPGRADE] Card ถูกลบไปแล้ว: %s"):format(unit.Name or "Unknown"))
+                return false
+            end
+        end
     end
 
-    warn("[UPG] เกิน maxTries แล้วยังไม่ตัน: "..unit.Name)
+    warn(("[UPGRADE] เกิน maxTries (%d) แล้วยังไม่ Max: %s"):format(maxTries, unit.Name or "Unknown"))
     return false
 end
 
--- MAIN: จับคู่ด้วย index แล้ววนทีละตัว
-local cards = getCards()
-local units = getUnits()
-local n = math.min(#cards, #units)
+-- ฟังก์ชันหลักที่มี Error Handling
+local function mainUpgradeLoop()
+    print("=== เริ่ม Auto Upgrade ===")
+    
+    while true do
+        local success, err = pcall(function()
+            -- เช็ค GUI ต่างๆ
+            local upgradePage = getUpgradePage()
+            if not upgradePage then
+                warn("ไม่พบ upgradePage รอ 3 วินาที...")
+                task.wait(3)
+                return
+            end
+            
+            local unitsFolder = plr:FindFirstChild("UnitsFolder")
+            if not unitsFolder then
+                warn("ไม่พบ unitsFolder รอ 3 วินาที...")
+                task.wait(3)
+                return
+            end
+            
+            -- ดึงข้อมูล Cards และ Units
+            local cards = getCards()
+            local units = getUnits()
+            
+            if #cards == 0 then
+                warn("ไม่พบ Cards รอ 3 วินาที...")
+                task.wait(3)
+                return
+            end
+            
+            if #units == 0 then
+                warn("ไม่พบ Units รอ 3 วินาที...")
+                task.wait(3)
+                return
+            end
+            
+            local n = math.min(#cards, #units)
+            print(("[INFO] พบ Cards: %d, Units: %d, จะทำ: %d ตัว"):format(#cards, #units, n))
 
-while true do
-    local cards = getCards()
-    local units = getUnits()
-    local n = math.min(#cards, #units)
+            -- วนอัปเกรดทีละตัว
+            for i = 1, n do
+                local unit = units[i]
+                local card = cards[i]
 
-    for i = 1, n do
-        local unit = units[i]
-        local card = cards[i]
+                if not unit or not card then
+                    warn(("[SKIP] Index %d - Unit หรือ Card เป็น nil"):format(i))
+                    continue
+                end
+                
+                if not unit.Parent then
+                    warn(("[SKIP] Index %d - Unit ถูกลบไปแล้ว: %s"):format(i, unit.Name or "Unknown"))
+                    continue
+                end
+                
+                if not card.Parent then
+                    warn(("[SKIP] Index %d - Card ถูกลบไปแล้ว: %s"):format(i, card.Name or "Unknown"))
+                    continue
+                end
 
-        -- ถ้าการ์ดนี้ตันแล้วก็ข้าม
-        if not isMaxedByUpgradeText(card) then
-            print(("[LOOP] ตัวที่ %d => Unit:%s | Card:%s"):format(i, unit.Name, card.Name))
-            upgradeIndexToMax(unit, card, {maxTries = 400, waitBetween = 0.2})
-        else
-            print("[SKIP] "..unit.Name.." MAXED แล้ว")
+                -- เช็คว่า Max แล้วหรือยัง
+                if isMaxedByUpgradeText(card) then
+                    print(("[SKIP] %s MAX แล้ว"):format(unit.Name or "Unknown"))
+                else
+                    print(("[PROCESS] ตัวที่ %d => Unit: %s | Card: %s"):format(
+                        i, 
+                        unit.Name or "Unknown", 
+                        card.Name or "Unknown"
+                    ))
+                    
+                    -- อัปเกรดจนสุด
+                    local upgradeSuccess = upgradeIndexToMax(unit, card, {
+                        maxTries = 200, 
+                        waitBetween = 0.2
+                    })
+                    
+                    if upgradeSuccess then
+                        print(("[SUCCESS] อัปเกรด %s เสร็จแล้ว"):format(unit.Name or "Unknown"))
+                    else
+                        warn(("[FAIL] อัปเกรด %s ไม่สำเร็จ"):format(unit.Name or "Unknown"))
+                    end
+                end
+                
+                -- พักระหว่างการอัปเกรด
+                task.wait(0.5)
+            end
+            
+            print("[CYCLE] รอบนี้เสร็จแล้ว รอ 2 วินาทีก่อนรอบต่อไป...")
+            task.wait(2)
+        end)
+        
+        if not success then
+            warn("เกิดข้อผิดพลาดในลูปหลัก: " .. tostring(err))
+            print("รอ 5 วินาทีแล้วลองใหม่...")
+            task.wait(5)
         end
     end
-		
-		
-
-    task.wait(1)  
 end
 
-print("[DONE] วนจนครบตาม index แล้ว")
+-- เริ่มการทำงาน
+print("=== Auto Upgrade Script Loaded ===")
+print("ใช้คำสั่ง:")
+print("_G.retryGG(true) -- เปิด Auto Retry")
+print("_G.retryGG(false) -- ปิด Auto Retry") 
+print("_G.blacksc(true) -- เปิด Black Screen")
+print("_G.blacksc(false) -- ปิด Black Screen")
+print("=====================================")
+
+-- เริ่มลูปหลัก
+task.spawn(mainUpgradeLoop)
+
+print("[DONE] Script พร้อมใช้งาน!")
