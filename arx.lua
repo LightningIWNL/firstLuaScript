@@ -63,7 +63,6 @@ local function retryGG(retry)
     else
         -- สั่งหยุด loop
         _G.retryLoopRunning = false
-        GuiService.SelectedObject = nil
     end
 end
 
