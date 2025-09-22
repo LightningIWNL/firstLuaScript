@@ -65,8 +65,10 @@ local function retryGG(retry)
 	end
 end
 
-blacksc(true)
-retryGG(true)
+-- blacksc(true)
+_G.blacksc = blacksc
+_G.retryGG = retryGG
+-- retryGG(true)
 
 -- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
 local upgradePage = plr.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame
