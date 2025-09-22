@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local maxUpgradeYen = game:GetService("Players").LocalPlayer.YenMaxUpgrade.Value
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 local retryBTN = game:GetService("Players").LocalPlayer.PlayerGui.RewardsUI.Main.LeftSide.Button
@@ -10,28 +9,29 @@ local black_screen = false
 
 
 
-local function blacksc (bscreen)
-	black_screen = bscreen
-	if black_screen then
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "BlackScreen"
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.Parent = plr:WaitForChild("PlayerGui")
-	RunService:Set3dRenderingEnabled(false)
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 1, 0)
-	frame.Position = UDim2.new(0, 0, 0, 0)
-	frame.BackgroundColor3 = Color3.new(0, 0, 0) -- สีดำ
-	frame.BorderSizePixel = 0
-	frame.Parent = gui
-else
-	local plr = game:GetService("Players").LocalPlayer
-	local gui = plr.PlayerGui:FindFirstChild("BlackScreen")
-	RunService:Set3dRenderingEnabled(true)
-	gui:Destroy()
+local function blacksc(bscreen)
+    black_screen = bscreen
+    if black_screen then
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "BlackScreen"
+        gui.IgnoreGuiInset = true
+        gui.ResetOnSpawn = false
+        gui.Parent = plr:WaitForChild("PlayerGui")
+
+        RunService:Set3dRenderingEnabled(false)
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.new(0, 0, 0)
+        frame.BorderSizePixel = 0
+        frame.Parent = gui
+    else
+        RunService:Set3dRenderingEnabled(true)
+        local gui = plr.PlayerGui:FindFirstChild("BlackScreen")
+        if gui then gui:Destroy() end    -- <- กัน nil
+    end
 end
-end
+
 
 
 
@@ -53,7 +53,7 @@ local function retryGG(retry)
 	end
 end
 
-blacksc(false)
+blacksc(true)
 retryGG(true)
 
 -- UI ของหน้ารายการยูนิต (ลำดับปุ่ม = ลำดับ index ที่เราจะวน)
