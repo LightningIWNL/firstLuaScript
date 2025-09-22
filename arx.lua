@@ -41,7 +41,6 @@ local function blacksc(bscreen)
         RunService:Set3dRenderingEnabled(true)
         local gui = plr.PlayerGui:FindFirstChild("BlackScreen")
         if gui then gui:Destroy() end  -- <- กัน nil
-        GuiService.SelectedObject = nil
     end
 end
 
