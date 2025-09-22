@@ -31,41 +31,61 @@ end
 
 -- กดปุ่มด้วยคีย์ Enter (เพิ่มการเช็คความปลอดภัย)
 local function pressButton(btn)
-    if not btn then 
+    -- เก็บค่า SelectedObject เดิมไว้ก่อน
+    local previousSelectedObject = GuiService.SelectedObject
+    
+    -- ตรวจสอบว่าปุ่มเป็น nil หรือไม่
+    if not btn then
         warn("Button is nil")
-        return false 
-    end
-    if not btn.Parent then 
-        warn("Button parent is nil")
-        return false 
-    end
-    if not btn:IsA("GuiButton") then 
-        warn("Not a GuiButton: " .. tostring(btn.ClassName))
-        return false 
+        return false
     end
     
-    -- ตรวจสอบว่าปุ่มสามารถกดได้
+    -- ตรวจสอบว่าปุ่มยังอยู่ใน GUI tree หรือไม่
+    if not btn.Parent then
+        warn("Button parent is nil")
+        return false
+    end
+    
+    -- ตรวจสอบว่าเป็น GuiButton หรือไม่
+    if not btn:IsA("GuiButton") then
+        warn("Not a GuiButton: " .. tostring(btn.ClassName))
+        return false
+    end
+    
+    -- ตรวจสอบว่าปุ่มมองเห็นได้หรือไม่
     if not btn.Visible then
         warn("Button is not visible")
         return false
     end
     
+    -- กำหนดให้ปุ่มสามารถถูกเลือกได้
     btn.Selectable = true
+    
+    -- ตั้งค่าปุ่มเป็น SelectedObject ปัจจุบัน
     GuiService.SelectedObject = btn
     
-    -- ใช้ pcall เพื่อป้องกัน error
+    -- ส่งคำสั่งกดปุ่ม Enter
     local success, err = pcall(function()
         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-        task.wait(0.05) -- รอเล็กน้อย
+        task.wait(0.05) -- รอเล็กน้อยให้ระบบประมวลผล
         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
     end)
     
-    if not success then
-        warn("Error pressing button: " .. tostring(err))
+    -- รอให้การกดปุ่มเสร็จสมบูรณ์
+    task.wait(0.1)
+    
+    -- คืนค่า SelectedObject เดิม (สำคัญมาก!)
+    pcall(function()
+        GuiService.SelectedObject = previousSelectedObject
+    end)
+    
+    if success then
+        print("✅ กดปุ่ม " .. (btn.Name or "Unknown") .. " สำเร็จ")
+        return true
+    else
+        warn("❌ เกิดข้อผิดพลาดในการกดปุ่ม: " .. tostring(err))
         return false
     end
-    
-    return true
 end
 
 local function blacksc(bscreen)
