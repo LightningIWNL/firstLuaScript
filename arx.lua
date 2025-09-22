@@ -3,7 +3,7 @@ local GuiService = game:GetService("GuiService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
-local retryBTN = game:GetService("Players").LocalPlayer.PlayerGui.RewardsUI.Main.LeftSide.Button
+local retryBTN = game:GetService("Players").LocalPlayer.PlayerGui.RewardsUI.Main.LeftSide.Button.Retry
 local retry_btn = false
 local black_screen = false
 
