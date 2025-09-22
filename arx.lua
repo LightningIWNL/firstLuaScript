@@ -3,9 +3,13 @@ local GuiService = game:GetService("GuiService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
+local swarm = game:GetService("StarterGui")["Swarm Event"]
+local swarm_event = game:GetService("Players").LocalPlayer.PlayerGui.HUD.MenuFrame.RightSide["Swarm Event"]
+local playbtn = game:GetService("Players").LocalPlayer.PlayerGui["Swarm Event"].Main.Tabs.Play
 
 local retry_btn = false
 local black_screen = false
+local swarm_gg = false
 
 -- ฟังก์ชันเช็คการมีอยู่ของ GUI อย่างปลอดภัย
 local function safeGetGui(path)
@@ -88,6 +92,19 @@ local function pressButton(btn)
     end
 end
 
+
+
+local function playSwarm(playsw)
+    swarm_gg = playsw
+    if swarm_event and playSwarm then
+	pressButton(swarm_event)
+	task.wait(1)
+	pressButton(playbtn)
+	
+    end
+end
+
+
 local function blacksc(bscreen)
     black_screen = bscreen
     if black_screen then
@@ -154,6 +171,7 @@ local function retryGG(retry)
 end
 
 -- ตั้งค่า Global Functions
+_G.playSwarm = playSwarm
 _G.retryGG = retryGG
 _G.blacksc = blacksc
 
