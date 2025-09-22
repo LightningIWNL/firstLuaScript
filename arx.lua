@@ -17,7 +17,6 @@ local function pressButton(btn)
 	GuiService.SelectedObject = btn
 	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-    GuiService.SelectedObject = btn
 	return true
 end
 
