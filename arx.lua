@@ -17,7 +17,7 @@ local function pressButton(btn)
 	GuiService.SelectedObject = btn
 	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
 	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-
+    GuiService.SelectedObject = nil
 	return true
 end
 
@@ -40,13 +40,10 @@ local function blacksc(bscreen)
     else
         RunService:Set3dRenderingEnabled(true)
         local gui = plr.PlayerGui:FindFirstChild("BlackScreen")
-        if gui then gui:Destroy() end    -- <- กัน nil
+        if gui then gui:Destroy() end  -- <- กัน nil
+        GuiService.SelectedObject = nil
     end
 end
-
-
-
-
 
 
 if _G.retryLoopRunning == nil then
@@ -71,10 +68,6 @@ local function retryGG(retry)
         GuiService.SelectedObject = nil
     end
 end
--- -- blacksc(true)
--- _G.blacksc = blacksc
--- _G.retryGG = retryGG
--- -- retryGG(true)
 
 
 _G.retryGG = retryGG
