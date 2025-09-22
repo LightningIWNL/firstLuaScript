@@ -49,22 +49,28 @@ end
 
 
 
-local function retryGG(retry)
-	retry_btn = retry
-	if retry then
-		task.spawn(function()
-			while retry_btn do
-				if retryBTN then
-					pressButton(retryBTN)
-				end
-				task.wait(0.1)
-			end
-		end)
-	else
-		GuiService.SelectedObject = nil  -- รีเซ็ตโฟกัสเพื่อให้เดินได้
-	end
+if _G.retryLoopRunning == nil then
+    _G.retryLoopRunning = false
 end
 
+local function retryGG(retry)
+    if retry then
+        -- เริ่ม loop ใหม่
+        _G.retryLoopRunning = true
+        task.spawn(function()
+            while _G.retryLoopRunning do
+                if retryBTN then
+                    pressButton(retryBTN)
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        -- สั่งหยุด loop
+        _G.retryLoopRunning = false
+        GuiService.SelectedObject = nil
+    end
+end
 -- -- blacksc(true)
 -- _G.blacksc = blacksc
 -- _G.retryGG = retryGG
